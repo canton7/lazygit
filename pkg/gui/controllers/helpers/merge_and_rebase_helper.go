@@ -403,30 +403,43 @@ func (self *MergeAndRebaseHelper) MergeRefIntoCheckedOutBranch(refName string) e
 	if self.c.Git().Branch.IsHeadDetached() {
 		return errors.New("Cannot merge branch in detached head state. You might have checked out a commit directly or a remote branch, in which case you should checkout the local branch you want to be on")
 	}
-	checkedOutBranchName := self.refsHelper.GetCheckedOutRef().Name
-	if checkedOutBranchName == refName {
-		return errors.New(self.c.Tr.CantMergeBranchIntoItself)
+	checkedOutBranch := self.refsHelper.GetCheckedOutRef()
+	var disabledReason, baseBranchDisabledReason *types.DisabledReason
+	if checkedOutBranch.Name == refName {
+		disabledReason = &types.DisabledReason{Text: self.c.Tr.CantMergeBranchIntoItself}
+		// return errors.New(self.c.Tr.CantMergeBranchIntoItself)
+	}
+
+	baseBranch, err := self.c.Git().Loaders.BranchLoader.GetBaseBranch(checkedOutBranch, self.refsHelper.c.Model().MainBranches)
+	if err != nil {
+		return err
+	}
+	if baseBranch == "" {
+		baseBranch = self.c.Tr.CouldNotDetermineBaseBranch
+		baseBranchDisabledReason = &types.DisabledReason{Text: self.c.Tr.CouldNotDetermineBaseBranch}
 	}
 
 	return self.c.Menu(types.CreateMenuOptions{
 		Title: self.c.Tr.Merge,
 		Items: []*types.MenuItem{
 			{
-				Label:   self.c.Tr.RegularMerge,
-				OnPress: self.RegularMerge(refName),
-				Key:     'm',
+				Label:          self.c.Tr.RegularMerge,
+				OnPress:        self.RegularMerge(refName),
+				Key:            'm',
+				DisabledReason: disabledReason,
 				Tooltip: utils.ResolvePlaceholderString(
 					self.c.Tr.RegularMergeTooltip,
 					map[string]string{
-						"checkedOutBranch": checkedOutBranchName,
+						"checkedOutBranch": checkedOutBranch.Name,
 						"selectedBranch":   refName,
 					},
 				),
 			},
 			{
-				Label:   self.c.Tr.SquashMergeUncommittedTitle,
-				OnPress: self.SquashMergeUncommitted(refName),
-				Key:     's',
+				Label:          self.c.Tr.SquashMergeUncommittedTitle,
+				OnPress:        self.SquashMergeUncommitted(refName),
+				Key:            's',
+				DisabledReason: disabledReason,
 				Tooltip: utils.ResolvePlaceholderString(
 					self.c.Tr.SquashMergeUncommitted,
 					map[string]string{
@@ -435,14 +448,30 @@ func (self *MergeAndRebaseHelper) MergeRefIntoCheckedOutBranch(refName string) e
 				),
 			},
 			{
-				Label:   self.c.Tr.SquashMergeCommittedTitle,
-				OnPress: self.SquashMergeCommitted(refName, checkedOutBranchName),
-				Key:     'S',
+				Label:          self.c.Tr.SquashMergeCommittedTitle,
+				OnPress:        self.SquashMergeCommitted(refName, checkedOutBranch.Name),
+				Key:            'S',
+				DisabledReason: disabledReason,
 				Tooltip: utils.ResolvePlaceholderString(
 					self.c.Tr.SquashMergeCommitted,
 					map[string]string{
-						"checkedOutBranch": checkedOutBranchName,
+						"checkedOutBranch": checkedOutBranch.Name,
 						"selectedBranch":   refName,
+					},
+				),
+			},
+			{
+				Label: utils.ResolvePlaceholderString(self.c.Tr.MergeBaseBranchTitle,
+					map[string]string{"baseBranch": ShortBranchName(baseBranch)},
+				),
+				OnPress:        self.RegularMerge(baseBranch),
+				Key:            'b',
+				DisabledReason: baseBranchDisabledReason,
+				Tooltip: utils.ResolvePlaceholderString(
+					self.c.Tr.RegularMergeTooltip,
+					map[string]string{
+						"checkedOutBranch": checkedOutBranch.Name,
+						"selectedBranch":   baseBranch,
 					},
 				),
 			},

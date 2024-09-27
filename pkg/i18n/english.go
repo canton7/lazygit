@@ -26,6 +26,7 @@ type TranslationSet struct {
 	MergingTitle                          string
 	SquashMergeUncommittedTitle           string
 	SquashMergeCommittedTitle             string
+	MergeBaseBranchTitle                  string
 	SquashMergeUncommitted                string
 	SquashMergeCommitted                  string
 	RegularMergeTooltip                   string
@@ -1009,6 +1010,7 @@ func EnglishTranslationSet() *TranslationSet {
 		MainTitle:                            "Main",
 		SquashMergeUncommittedTitle:          "Squash merge and leave uncommitted",
 		SquashMergeCommittedTitle:            "Squash merge and commit",
+		MergeBaseBranchTitle:                 "Merge base branch ({{.baseBranch}})",
 		StagingTitle:                         "Main panel (staging)",
 		MergingTitle:                         "Main panel (merging)",
 		NormalTitle:                          "Main panel (normal)",
